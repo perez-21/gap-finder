@@ -1,16 +1,20 @@
 import type { Request, RequestHandler, Response } from "express";
 
 import { userService } from "@/api/user/userService";
+import type { AuthenticatedRequest } from "@/common/types/auth";
 
 class UserController {
-	public getUsers: RequestHandler = async (_req: Request, res: Response) => {
-		const serviceResponse = await userService.findAll();
+	public getMyScores: RequestHandler = async (_req: Request, res: Response) => {
+		const serviceResponse = await userService.getMyScores();
 		res.status(serviceResponse.statusCode).send(serviceResponse);
 	};
 
-	public getUser: RequestHandler = async (req: Request, res: Response) => {
-		const id = Number.parseInt(req.params.id as string, 10);
-		const serviceResponse = await userService.findById(id);
+	public getMySessions: RequestHandler = async (req: Request, res: Response) => {
+		const userId = ( req as AuthenticatedRequest ).user?.id;
+		if (!userId) {
+			return res.status(401).send({ message: "Unauthorized" });
+		}
+		const serviceResponse = await userService.getMySessions(userId);
 		res.status(serviceResponse.statusCode).send(serviceResponse);
 	};
 }

@@ -20,7 +20,7 @@ export const validateRequest = (schema: ZodSchema) => async (req: Request, res: 
 				: `Invalid input (${errors.length} errors): ${errors.join("; ")}`;
 
 		const statusCode = StatusCodes.BAD_REQUEST;
-		const serviceResponse = ServiceResponse.failure(errorMessage, null, statusCode);
+		const serviceResponse = ServiceResponse.failure(errorMessage, statusCode);
 		res.status(serviceResponse.statusCode).send(serviceResponse);
 	}
 };

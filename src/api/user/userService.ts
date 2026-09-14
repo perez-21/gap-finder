@@ -1,49 +1,30 @@
-import { StatusCodes } from "http-status-codes";
-
-import type { User } from "@/api/user/userModel";
-import { UserRepository } from "@/api/user/userRepository";
+import type { UserScoresResponse, UserSessionsResponse } from "@/api/user/userModel";
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { logger } from "@/server";
-
+import { prisma } from "@/generated/prisma/singleton";
+import { StatusCodes } from "http-status-codes";
 export class UserService {
-	private userRepository: UserRepository;
+	async getMyScores(): Promise<ServiceResponse<UserScoresResponse>> {
 
-	constructor(repository: UserRepository = new UserRepository()) {
-		this.userRepository = repository;
+		// TODO: answer the question: are we aggregating or returning a value?
+		return ServiceResponse.success("Stub", []);
 	}
 
-	// Retrieves all users from the database
-	async findAll(): Promise<ServiceResponse<User[] | null>> {
-		try {
-			const users = await this.userRepository.findAllAsync();
-			if (!users || users.length === 0) {
-				return ServiceResponse.failure("No Users found", null, StatusCodes.NOT_FOUND);
-			}
-			return ServiceResponse.success<User[]>("Users found", users);
-		} catch (ex) {
-			const errorMessage = `Error finding all users: $${(ex as Error).message}`;
-			logger.error(errorMessage);
-			return ServiceResponse.failure(
-				"An error occurred while retrieving users.",
-				null,
-				StatusCodes.INTERNAL_SERVER_ERROR,
-			);
+	async getMySessions(userId: string): Promise<ServiceResponse<UserSessionsResponse> | ServiceResponse<unknown>>{
+		const sessions = await prisma.testSession.findMany({ where: { user_id: userId }});
+		if (!sessions.length) {
+			return ServiceResponse.failure("Sessions do not exist for this user", null, StatusCodes.NOT_FOUND);
 		}
-	}
 
-	// Retrieves a single user by their ID
-	async findById(id: number): Promise<ServiceResponse<User | null>> {
-		try {
-			const user = await this.userRepository.findByIdAsync(id);
-			if (!user) {
-				return ServiceResponse.failure("User not found", null, StatusCodes.NOT_FOUND);
+		const sessionHistory = sessions.map((session) => {
+			return {
+				id: session.id,
+				status: session.status,
+				startedAt: session.created_at,
+				endedAt: session.completed_at
 			}
-			return ServiceResponse.success<User>("User found", user);
-		} catch (ex) {
-			const errorMessage = `Error finding user with id ${id}:, ${(ex as Error).message}`;
-			logger.error(errorMessage);
-			return ServiceResponse.failure("An error occurred while finding user.", null, StatusCodes.INTERNAL_SERVER_ERROR);
-		}
+		})
+
+		return ServiceResponse.success("Sessions found successfully", sessionHistory, StatusCodes.OK);
 	}
 }
 

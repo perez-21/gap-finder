@@ -2,18 +2,17 @@
 	"compilerOptions": {
 		"target": "ESNext",
 		"module": "ESNext",
-		"baseUrl": "./src",
 		"paths": {
-			"@/*": ["*"]
+			"@/*": ["./src/*"]
 		},
-		"moduleResolution": "Node",
+		"rootDir": "./src",
 		"outDir": "dist",
 		"importsNotUsedAsValues": "remove",
 		"strict": true,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"types": ["vitest/globals"]
+		"types": ["node", "vitest/globals"]
 	},
 	"include": ["src/**/*"],
 	"exclude": ["node_modules"]

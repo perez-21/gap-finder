@@ -1,0 +1,161 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum academic_level {
+  foundation
+  ss1
+  ss2
+  ss3
+}
+
+enum question_type {
+  multiple_choice
+}
+
+enum difficulty_level {
+  easy
+  medium
+  hard
+}
+
+enum test_mode {
+  quick
+  infinite
+}
+
+enum session_status {
+  in_progress
+  completed
+  abandoned
+}
+
+// Models
+model User {
+  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email             String               @unique @db.VarChar(255)
+  password          String               @db.VarChar(255)
+  first_name        String?              @db.VarChar(100)
+  last_name         String?              @db.VarChar(100)
+  created_at        DateTime             @default(now()) @db.Timestamp(6)
+  updated_at        DateTime             @default(now()) @updatedAt @db.Timestamp(6)
+  
+  user_topic_scores UserTopicScore[]
+  test_sessions     TestSession[]
+  
+  @@map("users")
+}
+
+model Topic {
+  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title             String               @db.Text
+  description       String?              @db.Text
+  curriculum_level  academic_level
+  created_at        DateTime             @default(now()) @db.Timestamp(6)
+  updated_at        DateTime             @default(now()) @updatedAt @db.Timestamp(6)
+  
+  topic_dependencies_topic       TopicDependency[] @relation("TopicDependencies_topic")
+  topic_dependencies_depends_on  TopicDependency[] @relation("TopicDependencies_depends_on")
+  questions          Question[]
+  user_topic_scores  UserTopicScore[]
+  test_sessions      TestSession[]
+  
+  @@map("topics")
+}
+
+model TopicDependency {
+  topic_id             String   @db.Uuid
+  depends_on_topic_id  String   @db.Uuid
+  
+  topic      Topic @relation("TopicDependencies_topic", fields: [topic_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  depends_on Topic @relation("TopicDependencies_depends_on", fields: [depends_on_topic_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  
+  @@id([topic_id, depends_on_topic_id])
+  @@index([topic_id], map: "idx_topic_dependencies_topic")
+  @@map("topic_dependencies")
+}
+
+model UserTopicScore {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String    @db.Uuid
+  topic_id          String    @db.Uuid
+  score             Decimal?  @db.Decimal(3, 2)
+  questions_seen    Int       @default(0)
+  created_at        DateTime  @default(now()) @db.Timestamp(6)
+  updated_at        DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+  last_assessed_at  DateTime? @db.Timestamp(6)
+  
+  user  User  @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  topic Topic @relation(fields: [topic_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  
+  @@unique([user_id, topic_id])
+  @@index([user_id, topic_id], map: "idx_user_topic_scores_lookup")
+  @@map("user_topic_scores")
+}
+
+model Question {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  topic_id          String          @db.Uuid
+  text              String          @db.Text
+  type              question_type
+  difficulty        difficulty_level
+  options           Json?
+  correct_answer    String          @db.Text
+  explanation       String?         @db.Text
+  created_at        DateTime        @default(now()) @db.Timestamp(6)
+  updated_at        DateTime        @default(now()) @updatedAt @db.Timestamp(6)
+  
+  topic            Topic            @relation(fields: [topic_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  test_responses   TestResponse[]
+  
+  @@index([topic_id], map: "idx_questions_topic")
+  @@map("questions")
+}
+
+model TestSession {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String          @db.Uuid
+  entry_topic_id    String          @db.Uuid
+  mode              test_mode
+  status            session_status
+  session_state     Json?
+  created_at        DateTime        @default(now()) @db.Timestamp(6)
+  updated_at        DateTime        @default(now()) @updatedAt @db.Timestamp(6)
+  completed_at      DateTime?       @db.Timestamp(6)
+  
+  user           User          @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  entry_topic    Topic         @relation(fields: [entry_topic_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  test_responses TestResponse[]
+  
+  @@map("test_sessions")
+}
+
+model TestResponse {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id          String    @db.Uuid
+  question_id         String    @db.Uuid
+  topic_id            String    @db.Uuid
+  user_answer         String    @db.Text
+  is_correct          Boolean
+  time_taken_seconds  Int?
+  asked_at            DateTime? @db.Timestamp(6)
+  created_at          DateTime  @default(now()) @db.Timestamp(6)
+  updated_at          DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+  
+  session  TestSession @relation(fields: [session_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  question Question    @relation(fields: [question_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  
+  @@index([session_id], map: "idx_test_responses_session")
+  @@map("test_responses")
+}

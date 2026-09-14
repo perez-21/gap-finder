@@ -24,3 +24,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Misc
+
+/src/generated/prisma
+/prompts
+localLLMendpoint.md
+issues.md
+review.md
