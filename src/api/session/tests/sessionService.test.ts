@@ -16,12 +16,16 @@ async function clearTables() {
 }
 
 describe("Session Services", () => {
+  beforeAll(async () => {
+    await clearTables();
+  });
+  afterAll(async () => {
+    await clearTables();
+  });
   describe("Create Session", () => {
     let userId: string;
     const email = "email@example.com";
     beforeAll(async () => {
-      await clearTables();
-
       await prisma.topic.create({ data: topicFixtures.topic1 });
       const user = await prisma.user.create({
         data: {
@@ -120,12 +124,12 @@ describe("Session Services", () => {
         null,
         500,
       );
-      expect(sessionService.create(userId, request)).resolves.toMatchObject(
-        expectedServiceResponse,
-      );
+      await expect(
+        sessionService.create(userId, request),
+      ).resolves.toMatchObject(expectedServiceResponse);
     });
 
-    it("should return 404 service response when topicId does not exist", async () => {
+    it("should return service failure with status 404 when topicId does not exist", async () => {
       const topicId = uuidv4();
       const mode: "quick" | "infinite" = "infinite";
       const request: CreateSessionRequest = { topicId, mode };
@@ -135,9 +139,9 @@ describe("Session Services", () => {
         null,
         404,
       );
-      expect(sessionService.create(userId, request)).resolves.toMatchObject(
-        expectedServiceResponse,
-      );
+      await expect(
+        sessionService.create(userId, request),
+      ).resolves.toMatchObject(expectedServiceResponse);
     });
   });
 
@@ -170,22 +174,26 @@ describe("Session Services", () => {
       sessionId = testSession.id;
     });
 
-    it("should return service failure with status 500", () => {
-      expect(sessionService.getById(sessionId)).resolves.toMatchObject(
+    it("should return service failure with status 500", async () => {
+      await expect(sessionService.getById(sessionId)).resolves.toMatchObject(
         ServiceResponse.failure("Failed to get session", null, 500),
       );
     });
 
-    it("should return service failure with status 500 when sessionId is invalid", () => {
+    it("should return service failure with status 500 when sessionId is invalid", async () => {
       const invalidSessionId = "invalidId";
-      expect(sessionService.getById(invalidSessionId)).resolves.toMatchObject(
+      await expect(
+        sessionService.getById(invalidSessionId),
+      ).resolves.toMatchObject(
         ServiceResponse.failure("Failed to get session", null, 500),
       );
     });
 
-    it("should return service failure with status 500 when session doesn't exist", () => {
+    it("should return service failure with status 500 when session doesn't exist", async () => {
       const fakeSessionId = uuidv4();
-      expect(sessionService.getById(fakeSessionId)).resolves.toMatchObject(
+      await expect(
+        sessionService.getById(fakeSessionId),
+      ).resolves.toMatchObject(
         ServiceResponse.failure("Session not found", null, 404),
       );
     });
@@ -266,40 +274,40 @@ describe("Session Services", () => {
       userAnswer = "B";
     });
 
-    it("should return a service failure with status 500 ", async () => {
-      expect(
+    it("should return service failure with status 500 ", async () => {
+      await expect(
         sessionService.submitAnswer(sessionId, questionId, userAnswer),
       ).resolves.toMatchObject(ServiceResponse.failure("", null, 500));
     });
 
-    it("should do x when session id is invalid", async () => {
-      expect(
+    it("should return service failure with status 500 when session id is invalid", async () => {
+      await expect(
         sessionService.submitAnswer("invalidId", questionId, userAnswer),
       ).resolves.toMatchObject(
         ServiceResponse.failure("Failed to submit answer", null, 500),
       );
     });
-    it("should do x when question id is invalid", async () => {
-      expect(
+    it("should return service failure with status 500 when question id is invalid", async () => {
+      await expect(
         sessionService.submitAnswer(sessionId, "invalidId", userAnswer),
       ).resolves.toMatchObject(
         ServiceResponse.failure("Failed to submit answer", null, 500),
       );
     });
-    it("should do x when user answer is invalid", async () => {
-      expect(
+    it("should return service failure with status 500 when user answer is invalid", async () => {
+      await expect(
         sessionService.submitAnswer(sessionId, questionId, "invalidAnswer"),
       ).resolves.toMatchObject(ServiceResponse.failure("", null, 500));
     });
-    it("should do x when session does not exist", async () => {
-      expect(
+    it("should return service failure with status 404 when session does not exist", async () => {
+      await expect(
         sessionService.submitAnswer(uuidv4(), questionId, userAnswer),
       ).resolves.toMatchObject(
         ServiceResponse.failure("Session not found", null, 404),
       );
     });
-    it("should do x when question does not exist", async () => {
-      expect(
+    it("should return service failure with status 404 when question does not exist", async () => {
+      await expect(
         sessionService.submitAnswer(sessionId, uuidv4(), userAnswer),
       ).resolves.toMatchObject(
         ServiceResponse.failure("Question not found", null, 404),
@@ -342,8 +350,8 @@ describe("Session Services", () => {
     afterEach(async () => {
       await prisma.testSession.deleteMany();
     });
-    it("should do x", async () => {
-      expect(sessionService.abandon(sessionId)).resolves.toMatchObject(
+    it("should return successfull service response with session id and status", async () => {
+      await expect(sessionService.abandon(sessionId)).resolves.toMatchObject(
         ServiceResponse.success(
           "Session abandoned",
           { id: sessionId, status: "abandoned" },
@@ -356,9 +364,9 @@ describe("Session Services", () => {
       expect(session?.status).toMatch("abandoned");
       expect(session?.completed_at).toBe(null);
     });
-    it("should do x if session id is invalid", async () => {
+    it("should return service failure with status 500 when session id is invalid", async () => {
       const invalidId = "invalidId";
-      expect(sessionService.abandon(invalidId)).resolves.toMatchObject(
+      await expect(sessionService.abandon(invalidId)).resolves.toMatchObject(
         ServiceResponse.failure("Failed to abandon session", null, 500),
       );
       const session = await prisma.testSession.findUnique({
@@ -367,9 +375,9 @@ describe("Session Services", () => {
       expect(session?.status).toMatch("in_progress");
       expect(session?.completed_at).toBe(null);
     });
-    it("should do x if session does not exist", async () => {
+    it("should return service failure with status 500 if session does not exist", async () => {
       const fakeId = uuidv4();
-      expect(sessionService.abandon(fakeId)).resolves.toMatchObject(
+      await expect(sessionService.abandon(fakeId)).resolves.toMatchObject(
         ServiceResponse.failure("Failed to abandon session", null, 500),
       );
       const session = await prisma.testSession.findUnique({
@@ -430,8 +438,8 @@ describe("Session Services", () => {
       topicId = topic.id;
     });
 
-    it("should do x", async () => {
-      expect(sessionService.getResults(sessionId)).resolves.toMatchObject(
+    it("should return successful service response with results object", async () => {
+      await expect(sessionService.getResults(sessionId)).resolves.toMatchObject(
         ServiceResponse.success(
           "Results retrieved",
           {
@@ -445,14 +453,16 @@ describe("Session Services", () => {
       );
     });
 
-    it("should do x if sessionId is invalid", async () => {
-      expect(sessionService.getResults("invalidId")).resolves.toMatchObject(
+    it("should return service failure with status 500 if sessionId is invalid", async () => {
+      await expect(
+        sessionService.getResults("invalidId"),
+      ).resolves.toMatchObject(
         ServiceResponse.failure("Failed to get results", null, 500),
       );
     });
 
-    it("should do x if session does not exist", async () => {
-      expect(sessionService.getResults(uuidv4())).resolves.toMatchObject(
+    it("should return service failure with status 404 if session does not exist", async () => {
+      await expect(sessionService.getResults(uuidv4())).resolves.toMatchObject(
         ServiceResponse.failure("Session not found", null, 404),
       );
     });

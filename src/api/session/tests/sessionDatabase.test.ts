@@ -11,8 +11,17 @@ import {
 import * as questionFixtures from "./fixtures/question.fixture";
 import * as topicFixtures from "./fixtures/topic.fixture";
 
+async function clearTables() {
+  await prismaClient.question.deleteMany();
+  await prismaClient.testSession.deleteMany();
+  await prismaClient.user.deleteMany();
+  await prismaClient.topicDependency.deleteMany();
+  await prismaClient.topic.deleteMany();
+}
+
 describe("Session Repository", () => {
   beforeAll(async () => {
+    await clearTables();
     await prismaClient.topic.createMany({
       data: [
         topicFixtures.topic1,
@@ -47,17 +56,9 @@ describe("Session Repository", () => {
   });
 
   afterAll(async () => {
-    await prismaClient.topicDependency.deleteMany({
-      where: {
-        topic_id: { in: topicFixtures.topicIds },
-      },
-    });
-    await prismaClient.topic.deleteMany({
-      where: {
-        id: { in: topicFixtures.topicIds },
-      },
-    });
+    await clearTables();
   });
+
   describe("Get dependency subgraph", () => {
     it("should return an array of topic dependencies in descending order", async () => {
       const topicId = topicFixtures.topic5.id;
@@ -90,18 +91,18 @@ describe("Session Repository", () => {
     });
     it("should return empty array if topic has no dependencies", async () => {
       const topicId = topicFixtures.topic1.id;
-      expect(getDependencySubgraph(topicId)).resolves.toHaveLength(0);
+      await expect(getDependencySubgraph(topicId)).resolves.toHaveLength(0);
     });
 
     it("should throw an error when topic id is invalid", async () => {
       const topicId = "invalidId";
 
-      expect(getDependencySubgraph(topicId)).rejects.toThrow();
+      await expect(getDependencySubgraph(topicId)).rejects.toThrow();
     });
 
-    it("should return empty error if topic id is valid but does not exist", async () => {
+    it("should return empty array if topic id is valid but does not exist", async () => {
       const topicId = uuidv4();
-      expect(getDependencySubgraph(topicId)).resolves.toHaveLength(0);
+      await expect(getDependencySubgraph(topicId)).resolves.toHaveLength(0);
     });
   });
   describe("Get direct dependencies", () => {
@@ -113,15 +114,15 @@ describe("Session Repository", () => {
     });
     it("should return an empty array if topic has no dependencies", async () => {
       const topicId = topicFixtures.topic1.id;
-      expect(getDirectDependencies(topicId)).resolves.toHaveLength(0);
+      await expect(getDirectDependencies(topicId)).resolves.toHaveLength(0);
     });
     it("should throw an error when topicId is invalid", async () => {
       const topicId = "invalidId";
-      expect(getDirectDependencies(topicId)).rejects.toThrow();
+      await expect(getDirectDependencies(topicId)).rejects.toThrow();
     });
     it("should do return an empty array when a topic id is valid but does not exist", async () => {
       const topicId = uuidv4();
-      expect(getDirectDependencies(topicId)).resolves.toHaveLength(0);
+      await expect(getDirectDependencies(topicId)).resolves.toHaveLength(0);
     });
   });
 
@@ -134,16 +135,16 @@ describe("Session Repository", () => {
         curriculum_level: topicFixtures.topic1.curriculum_level,
         description: null,
       };
-      expect(getTopic(topicId)).resolves.toMatchObject(expectedObject);
+      await expect(getTopic(topicId)).resolves.toMatchObject(expectedObject);
     });
 
     it("should throw an error when topicId is invalid", async () => {
       const topicId = "invalidId";
-      expect(getTopic(topicId)).rejects.toThrow();
+      await expect(getTopic(topicId)).rejects.toThrow();
     });
     it("should return null when a topic id is valid but does not exist", async () => {
       const topicId = uuidv4();
-      expect(getTopic(topicId)).resolves.toBe(null);
+      await expect(getTopic(topicId)).resolves.toBe(null);
     });
   });
 
@@ -156,25 +157,25 @@ describe("Session Repository", () => {
       topicFixtures.topic5,
     ];
     it("should return an array of topics by id", async () => {
-      expect(getTopics(topicFixtures.topicIds)).resolves.toMatchObject(
+      await expect(getTopics(topicFixtures.topicIds)).resolves.toMatchObject(
         expectedTopics,
       );
     });
 
     it("should throw an error if any id is invalid", async () => {
-      expect(
+      await expect(
         getTopics([...topicFixtures.topicIds, "invalidId"]),
       ).rejects.toThrow();
     });
 
     it("should return array of topics that do exist if any of topic id does not exist", async () => {
-      expect(
+      await expect(
         getTopics([...topicFixtures.topicIds, uuidv4()]),
       ).resolves.toMatchObject(expectedTopics);
     });
 
     it("should return an empty array if argument is an empty array", async () => {
-      expect(getTopics([])).resolves.toHaveLength(0);
+      await expect(getTopics([])).resolves.toHaveLength(0);
     });
   });
 
@@ -188,11 +189,7 @@ describe("Session Repository", () => {
       await prismaClient.question.createMany({ data: questions });
     });
     afterAll(async () => {
-      await prismaClient.question.deleteMany({
-        where: {
-          topic_id: { in: topicFixtures.topicIds },
-        },
-      });
+      await prismaClient.question.deleteMany();
     });
 
     it("should return a question object without answer clues", async () => {
@@ -209,12 +206,12 @@ describe("Session Repository", () => {
     });
     it("should throw an error if topicId is invalid", async () => {
       const topicId = "invalidId";
-      expect(getQuestionsForTopic(topicId)).rejects.toThrow();
+      await expect(getQuestionsForTopic(topicId)).rejects.toThrow();
     });
 
     it("should return an empty array if topicId is valid, but doesn't exist", async () => {
       const topicId = uuidv4();
-      expect(getQuestionsForTopic(topicId)).resolves.toHaveLength(0);
+      await expect(getQuestionsForTopic(topicId)).resolves.toHaveLength(0);
     });
 
     it("should to return an empty array if questions don't exist for topicId", async () => {
@@ -225,7 +222,7 @@ describe("Session Repository", () => {
         },
       });
 
-      expect(getQuestionsForTopic(topicId)).resolves.toHaveLength(0);
+      await expect(getQuestionsForTopic(topicId)).resolves.toHaveLength(0);
     });
   });
 
@@ -249,12 +246,7 @@ describe("Session Repository", () => {
     };
 
     afterEach(async () => {
-      question.topicId = topicId;
-      await prismaClient.question.deleteMany({
-        where: {
-          topic_id: question.topicId,
-        },
-      });
+      await prismaClient.question.deleteMany();
     });
 
     it("should create a question and return it as an object", async () => {
@@ -273,12 +265,12 @@ describe("Session Repository", () => {
 
     it("should throw an error if topicId is invalid", async () => {
       question.topicId = "invalidId";
-      expect(createQuestion(question)).rejects.toThrow();
+      await expect(createQuestion(question)).rejects.toThrow();
     });
 
     it("should throw an error if topicId does not exist", async () => {
       question.topicId = uuidv4();
-      expect(createQuestion(question)).rejects.toThrow();
+      await expect(createQuestion(question)).rejects.toThrow();
     });
   });
 });
