@@ -84,6 +84,25 @@ export class LocalLLMStrategy implements LLMStrategy {
   }
 }
 
+export class MockLLMStrategy implements LLMStrategy {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  call(systemPrompt: string, prompt: string, response_format?: any) {
+    const generateQuestion = (): GeneratedQuestion => ({
+      difficulty: 1,
+      text: "Sample question",
+      options: ["Option A", "Option B", "Option C", "Option D"],
+      correctAnswer: "A",
+      explanation: "This is a mock question used for testing.",
+    });
+    const generatedQuestions: GeneratedQuestion[] = Array.from(
+      { length: env.QUESTIONS_PER_PROBE },
+      () => generateQuestion(),
+    );
+
+    return Promise.resolve(generatedQuestions);
+  }
+}
+
 /**
  * Factory function to get the default LLM strategy
  */

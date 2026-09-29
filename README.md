@@ -62,6 +62,10 @@ For a visual guide, watch the [video demo](https://github.com/user-attachments/a
 - Building: `pnpm build`
 - Production Mode: Set `NODE_ENV="production"` in `.env` then `pnpm build && pnpm start:prod`
 
+### Testing
+
+Before running datatabase integration tests, make sure to create a seperate test DB and migrate to it. You can use the command: `npx prisma db push --url "postgresql://username:pass@localhost:5432/test_db_name"`
+
 ## 🤝 Feedback and Contributions
 
 We'd love to hear your feedback and suggestions for further improvements. Feel free to contribute and join us in making backend development cleaner and faster!
