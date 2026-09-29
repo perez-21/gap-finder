@@ -40,6 +40,7 @@ describe("Session Services", () => {
 
     afterEach(async () => {
       await prisma.testSession.deleteMany({ where: { user_id: userId } });
+      await prisma.question.deleteMany();
     });
     it("should return session in quick mode and persist it", async () => {
       const topicId = topicFixtures.topic1.id;
@@ -63,7 +64,17 @@ describe("Session Services", () => {
       expect(response).toMatchObject(expectedResponse);
       expect(response.data).toHaveProperty("sessionId");
       expect(response.data).toHaveProperty("totalTopicsToProbe");
-      expect(response.data).toHaveProperty("sessionId");
+      expect(response.data).toHaveProperty("question");
+
+      expect(response.data?.question).toHaveProperty("id");
+      expect(response.data?.question).toHaveProperty("text");
+      expect(response.data?.question).toHaveProperty("type");
+      expect(response.data?.question).toHaveProperty("options");
+
+      expect(response.data?.question.id).toBeTypeOf("string");
+      expect(response.data?.question.text).toBeTypeOf("string");
+      expect(response.data?.question.type).toBeTypeOf("string");
+      expect(response.data?.question.options).toBeInstanceOf(Array);
 
       const expectedSessionObject = {
         user_id: userId,
@@ -76,6 +87,10 @@ describe("Session Services", () => {
         where: { id: response.data?.sessionId },
       });
       expect(newSession).toMatchObject(expectedSessionObject);
+
+      await expect(prisma.question.count()).resolves.toBe(
+        env.QUESTIONS_PER_PROBE,
+      );
     });
     it("should return session in infinite mode and persist it", async () => {
       const topicId = topicFixtures.topic1.id;
@@ -94,11 +109,22 @@ describe("Session Services", () => {
         statusCode: 201,
         success: true,
       };
+
       const response = await sessionService.create(userId, request);
       expect(response).toMatchObject(expectedResponse);
       expect(response.data).toHaveProperty("sessionId");
       expect(response.data).toHaveProperty("totalTopicsToProbe");
-      expect(response.data).toHaveProperty("sessionId");
+      expect(response.data).toHaveProperty("question");
+
+      expect(response.data?.question).toHaveProperty("id");
+      expect(response.data?.question).toHaveProperty("text");
+      expect(response.data?.question).toHaveProperty("type");
+      expect(response.data?.question).toHaveProperty("options");
+
+      expect(response.data?.question.id).toBeTypeOf("string");
+      expect(response.data?.question.text).toBeTypeOf("string");
+      expect(response.data?.question.type).toBeTypeOf("string");
+      expect(response.data?.question.options).toBeInstanceOf(Array);
 
       const expectedSessionObject = {
         user_id: userId,
@@ -112,6 +138,10 @@ describe("Session Services", () => {
       });
 
       expect(newSession).toMatchObject(expectedSessionObject);
+
+      await expect(prisma.question.count()).resolves.toBe(
+        env.QUESTIONS_PER_PROBE,
+      );
     });
 
     it("should return service failure with status 404 when topicId is invalid", async () => {
@@ -247,6 +277,13 @@ describe("Session Services", () => {
         topicStates: {
           [topicFixtures.topic1.id]: {
             topicId: topicFixtures.topic1.id,
+            status: "untested",
+            questionsAsked: [],
+            answers: [],
+            score: null,
+          },
+          [topicFixtures.topic2.id]: {
+            topicId: topicFixtures.topic2.id,
             status: "untested",
             questionsAsked: [],
             answers: [],
