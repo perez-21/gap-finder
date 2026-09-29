@@ -1,5 +1,6 @@
 import {
   getDefaultLLMStrategy,
+  MockLLMStrategy,
   type LLMStrategy,
 } from "@/api/session/llmStrategies";
 import type { GeneratedQuestion } from "@/api/session/sessionTypes";
@@ -115,7 +116,9 @@ async function callLLM(
   response_format?: any,
   strategy?: LLMStrategy,
 ): Promise<GeneratedQuestion[]> {
-  const llmStrategy = strategy || getDefaultLLMStrategy();
+  const llmStrategy = env.isTest
+    ? new MockLLMStrategy()
+    : strategy || getDefaultLLMStrategy();
   return llmStrategy.call(systemPrompt, prompt, response_format);
 }
 
